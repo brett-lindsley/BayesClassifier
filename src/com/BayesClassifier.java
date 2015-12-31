@@ -1,6 +1,5 @@
 package com;
 
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -175,43 +174,73 @@ public class BayesClassifier {
 	
 	private void buildModel() {
 		
-		// Calculate the probability of each class.
-		// Create map to hold counts.
-		Map<String, AtomicInteger> classCounts = new HashMap<>();
-		for (String className : evidence.getClasses()) {
-			classCounts.put(className, new AtomicInteger(0));
-		}
-		// Count number of events in each classification.
-		for (int e = 0; e < evidence.getEvidence().size(); e++) {
-			EvidenceLine eLine = evidence.getEvidence().get(e);
-			String className = eLine.getClassification();
-			classCounts.get(className).incrementAndGet();
-
+		addAttributesToModel();
 		
-		}
+		calculateClassificationsPriorProbabilities();
 		
-		// Put in model.
-		model.setNumberOfEvents(evidence.getEvidence().size());
-		model.setClassCounts(classCounts);
+//		// Calculate the probability of each class.
+//		// Create map to hold counts.
+//		Map<String, AtomicInteger> classCounts = new HashMap<>();
+//		for (String className : evidence.getClasses()) {
+//			classCounts.put(className, new AtomicInteger(0));
+//		}
+//		// Count number of events in each classification.
+//		for (int e = 0; e < evidence.getEvidence().size(); e++) {
+//			EvidenceLine eLine = evidence.getEvidence().get(e);
+//			String className = eLine.getClassification();
+//			classCounts.get(className).incrementAndGet();
+//
+//		
+//		}
+//		
+//		// Put in model.
+//		model.setNumberOfEvents(evidence.getEvidence().size());
+//		model.setClassCounts(classCounts);
 		
 		
-		for (String key : classCounts.keySet()) {
-			System.out.println(key + ": " + classCounts.get(key));
+		for (String key : model.getClassCounts().keySet()) {
+			System.out.println(key + ": " + model.getClassCounts().get(key));
 		}
 		System.out.println();
 		
 		
 		// Mapping of each classification to a list of attribute maps. Each attribute map
 		// holds the count of the number of events.
-		Map<String, List<Map<String, AtomicInteger>>> model = new HashMap<>();
+//		Map<String, List<Map<String, AtomicInteger>>> model = new HashMap<>();
+//		
+//		for (String classificationName : evidence.getClasses()) {
+//			List<Map<String, AtomicInteger>> attributeList = new LinkedList<Map<String, AtomicInteger>>();
+//			
+//			for (int i = 0; i < evidence.getAttributeNames().size(); i++) {
+//				attributeList.add(new HashMap<String, AtomicInteger>());
+//			}
+//			
+//			model.put(classificationName,  attributeList);
+//		}
+		
+		// Create counter maps for each classification.
 		for (String classificationName : evidence.getClasses()) {
+			// Create an attribute list for this classification.
 			List<Map<String, AtomicInteger>> attributeList = new LinkedList<Map<String, AtomicInteger>>();
 			
-			for (int i = 0; i < evidence.getAttributeNames().size(); i++) {
-				attributeList.add(new HashMap<String, AtomicInteger>());
+			// Add each attribute and its count map.
+			for (int attrIndex = 0; attrIndex < model.getAttributes().size(); attrIndex++) {
+//				Attribute attribute = model.getAttributes().get(attrIndex);
+				
+				// Create attribute count map.
+				Map<String, AtomicInteger> countMap = new HashMap<>();
+				
+				// Initialize counts.
+				for (String attributeValueName : model.getAttributes().get(attrIndex).getValues()) {
+					countMap.put(attributeValueName, new AtomicInteger(0));
+				}
+				
+				// Put count map in list.
+				attributeList.add(countMap);
 			}
 			
-			model.put(classificationName,  attributeList);
+			// Save list of count maps in model.
+			model.getModelCounts().put(classificationName,  attributeList);
 		}
 		
 			
@@ -227,7 +256,7 @@ public class BayesClassifier {
 				String className = eLine.getClassification();
 				
 				// Get the list for this class.
-				List<Map<String, AtomicInteger>> attributeList = model.get(className);
+				List<Map<String, AtomicInteger>> attributeList = model.getModelCounts().get(className);
 									
 				// Get the value map for this attribute.
 				Map<String, AtomicInteger> valueMap = attributeList.get(a);
@@ -235,11 +264,6 @@ public class BayesClassifier {
 				// Get the value for this attribute.
 				String attributeValue = eLine.getAttributeValues().get(a);
 				AtomicInteger attributeValueCount = valueMap.get(attributeValue);
-				// If value not in map, add it.
-				if (attributeValueCount == null) {
-					attributeValueCount = new AtomicInteger(0);
-					valueMap.put(attributeValue, attributeValueCount);
-				}
 				// Inc count.
 				attributeValueCount.incrementAndGet();
 			}				
@@ -247,11 +271,11 @@ public class BayesClassifier {
 		
 		System.out.println("Model built");
 		
-		for (String className : classCounts.keySet()) {
-			System.out.println(className + ": " + classCounts.get(className));
+		for (String className : model.getClassCounts().keySet()) {
+			System.out.println(className + ": " + model.getClassCounts().get(className));
 			
 			// Get the list for this class.
-			List<Map<String, AtomicInteger>> attributeList = model.get(className);
+			List<Map<String, AtomicInteger>> attributeList = model.getModelCounts().get(className);
 
 			for (int i = 0; i < attributeList.size(); i++) {
 				System.out.println(i + ", attribute: " + evidence.getAttributeNames().get(i));
@@ -314,6 +338,44 @@ public class BayesClassifier {
 	}
 	
 	
+	@SuppressWarnings("serial")
+	private void addAttributesToModel() {
+		// Outlook.
+		model.getAttributes().add(
+				new Attribute("outlook", new LinkedList<String>() {{ add("sunny"); add("overcast"); add("rainy");}})
+		);
+		// Temperature.
+		model.getAttributes().add(
+				new Attribute("temperature", new LinkedList<String>() {{ add("hot"); add("mild"); add("cool");}})
+		);
+		// Humidity.
+		model.getAttributes().add(
+				new Attribute("humidity", new LinkedList<String>() {{ add("high"); add("normal");}})
+		);
+		// Windy.
+		model.getAttributes().add(
+				new Attribute("windy", new LinkedList<String>() {{ add("false"); add("true");}})
+		);
+	}
+	
+	private void calculateClassificationsPriorProbabilities() {
+		// Calculate the probability of each class.
+		// Create map to hold counts.
+		Map<String, AtomicInteger> classCounts = new HashMap<>();
+		for (String className : evidence.getClasses()) {
+			classCounts.put(className, new AtomicInteger(0));
+		}
+		// Count number of events in each classification.
+		for (int e = 0; e < evidence.getEvidence().size(); e++) {
+			EvidenceLine eLine = evidence.getEvidence().get(e);
+			String className = eLine.getClassification();
+			classCounts.get(className).incrementAndGet();	
+		}
+		
+		// Put in model.
+		model.setNumberOfEvents(evidence.getEvidence().size());
+		model.setClassCounts(classCounts);
+	}
 
 	
 	public static void main(String[] args) {
