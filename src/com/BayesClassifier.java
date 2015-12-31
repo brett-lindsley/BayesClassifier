@@ -1,5 +1,7 @@
 package com;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -306,16 +308,92 @@ public class BayesClassifier {
 		}
 	}
 	
+	private List<ClassificationResult> classify(List<String> values, boolean useLaplacianSmoothing) {
+		
+		List<ClassificationResult> classificationList = new LinkedList<>();
+		
+		double totalLikelihood = 0.0;
+		
+		// Calculate the likelihood for each classification.
+		for (String className : model.getClassCounts().keySet()) {
+			
+			// Initialize likelihood to prior probability of the classification.
+			double likelihood = (double) model.getClassCounts().get(className).intValue() / (double) model.getNumberOfEvents();
+			
+			// Get the attribute list for this classification.
+			List<Map<String, AtomicInteger>> attributeList = model.getModelCounts().get(className);
+
+			// Multiply the probability of each attribute.
+			for (int i = 0; i < attributeList.size(); i++) {
+				Map<String, AtomicInteger> attributeMap = attributeList.get(i);
+
+				// Get the number of events for this attribute.
+				int numEventsForAttribute = attributeMap.get(values.get(i)).intValue();
+				
+				// Find total number of events for this attribute.
+				int totalEvents = 0;
+				for (String attributeValue : attributeMap.keySet()) {
+					totalEvents += attributeMap.get(attributeValue).intValue();
+				}
+				
+				if (useLaplacianSmoothing) {
+					numEventsForAttribute++;
+					totalEvents += attributeMap.size();
+				}
+				
+				// Calculate contribution of this attribute to likelihood.
+				likelihood *= (double) numEventsForAttribute / (double) totalEvents;
+			}
+			
+			// Total the likelihood.
+			totalLikelihood += likelihood;
+			
+			// Add the classification result.
+			ClassificationResult cr = new ClassificationResult();
+			cr.setClassificationName(className);
+			cr.setLikelihood(likelihood);
+			classificationList.add(cr);
+		}
+		
+		// Scale all likelihoods to create probability.
+		for (ClassificationResult cr : classificationList) {
+			cr.setProbability(cr.getLikelihood() / totalLikelihood);
+		}
+		
+		// Sort by likelihood.
+		Collections.sort(classificationList, new Comparator<ClassificationResult>() {
+			@Override
+			public int compare(ClassificationResult o1, ClassificationResult o2) {
+				if (o1.getLikelihood() > o2.getLikelihood()) return -1;
+				else return 1;
+			}});
+		
+		return classificationList;
+	}
+	
+	@SuppressWarnings("serial")
 	public static void main(String[] args) {
 		BayesClassifier bc = new BayesClassifier();
 		
 		bc.initializeEvidence();
-		bc.printEvidence();
 		bc.buildModel();
-		bc.printTotalNumberOfEvents();
-		bc.printClassificationCounts();
-		bc.printAttributeCounts();
+
+//		bc.printEvidence();
+//		bc.printTotalNumberOfEvents();
+//		bc.printClassificationCounts();
+//		bc.printAttributeCounts();
 		
+		System.out.println("***** Classify *****");
+		List<ClassificationResult> classificationResults =
+				bc.classify(new LinkedList<String>() {{ add("sunny"); add("cool"); add("high"); add("true");}}, false);
+		for (ClassificationResult cr : classificationResults) {
+			System.out.println(cr.getClassificationName() + " " + cr.getLikelihood() + " " + cr.getProbability());
+		}
+		List<ClassificationResult> classificationResultsSmoothed =
+				bc.classify(new LinkedList<String>() {{ add("sunny"); add("cool"); add("high"); add("true");}}, true);
+		for (ClassificationResult cr : classificationResultsSmoothed) {
+			System.out.println(cr.getClassificationName() + " " + cr.getLikelihood() + " " + cr.getProbability());
+		}
 	}
 
 }
