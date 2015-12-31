@@ -378,10 +378,10 @@ public class BayesClassifier {
 		bc.initializeEvidence();
 		bc.buildModel();
 
-//		bc.printEvidence();
-//		bc.printTotalNumberOfEvents();
-//		bc.printClassificationCounts();
-//		bc.printAttributeCounts();
+		bc.printEvidence();
+		bc.printTotalNumberOfEvents();
+		bc.printClassificationCounts();
+		bc.printAttributeCounts();
 		
 		System.out.println("***** Classify *****");
 		List<ClassificationResult> classificationResults =
@@ -389,6 +389,8 @@ public class BayesClassifier {
 		for (ClassificationResult cr : classificationResults) {
 			System.out.println(cr.getClassificationName() + " " + cr.getLikelihood() + " " + cr.getProbability());
 		}
+		
+		System.out.println("***** Classify Using Smoothing *****");
 		List<ClassificationResult> classificationResultsSmoothed =
 				bc.classify(new LinkedList<String>() {{ add("sunny"); add("cool"); add("high"); add("true");}}, true);
 		for (ClassificationResult cr : classificationResultsSmoothed) {
