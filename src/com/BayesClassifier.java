@@ -371,6 +371,7 @@ public class BayesClassifier {
 		return classificationList;
 	}
 	
+	// http://suanpalm3.kmutnb.ac.th/teacher/FileDL/choochart82255418560.pdf
 	@SuppressWarnings("serial")
 	public static void main(String[] args) {
 		BayesClassifier bc = new BayesClassifier();
