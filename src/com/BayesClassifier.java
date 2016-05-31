@@ -388,14 +388,18 @@ public class BayesClassifier {
 		List<ClassificationResult> classificationResults =
 				bc.classify(new LinkedList<String>() {{ add("sunny"); add("cool"); add("high"); add("true");}}, false);
 		for (ClassificationResult cr : classificationResults) {
-			System.out.println(cr.getClassificationName() + " " + cr.getLikelihood() + " " + cr.getProbability());
+			System.out.format("%15s Likelihood: %15f, probability: %15f\n",
+					cr.getClassificationName(),cr.getLikelihood(),cr.getProbability());
 		}
+		
+		System.out.println();
 		
 		System.out.println("***** Classify Using Smoothing *****");
 		List<ClassificationResult> classificationResultsSmoothed =
 				bc.classify(new LinkedList<String>() {{ add("sunny"); add("cool"); add("high"); add("true");}}, true);
 		for (ClassificationResult cr : classificationResultsSmoothed) {
-			System.out.println(cr.getClassificationName() + " " + cr.getLikelihood() + " " + cr.getProbability());
+			System.out.format("%15s Likelihood: %15f, probability: %15f\n",
+					cr.getClassificationName(),cr.getLikelihood(),cr.getProbability());
 		}
 	}
 
